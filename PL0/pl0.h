@@ -40,14 +40,20 @@
 #define procsym    0x20000000
 
 enum object {
-    constant, variable, proc
+    constant, variable, proc, array
 };
+
+typedef enum {
+    false,
+    true
+} bool;
+
 
 enum fct {
     lit, opr, lod, sto, cal, Int, jmp, jpc         // functions
 };
 
-typedef struct{
+typedef struct {
     enum fct f;		// function code
     long l; 		// level
     long a; 		// displacement address
@@ -63,7 +69,7 @@ typedef struct{
 
 char ch;               // last character read
 unsigned long sym;     // last symbol read
-char id[al+1];         // last identifier read
+char id[al + 1];         // last identifier read
 long num;              // last number read
 long cc;               // character count
 long ll;               // line length
@@ -71,22 +77,25 @@ long kk, err;
 long cx;               // code allocation index
 
 char line[81];
-char a[al+1];
-instruction code[cxmax+1];
-char word[norw][al+1];
+char a[al + 1];
+instruction code[cxmax + 1];
+char word[norw][al + 1];
 unsigned long wsym[norw];
 unsigned long ssym[256];
 
-char mnemonic[8][3+1];
+char mnemonic[8][3 + 1];
 unsigned long declbegsys, statbegsys, facbegsys;
 
-struct{
-    char name[al+1];
+struct {
+    char name[al + 1];
     enum object kind;
     long val;
     long level;
     long addr;
-}table[txmax+1];
+    int low;      /* 下界：仅数组需要使用*/
+}table[txmax + 1];
+
+
 
 char infilename[80];
 FILE* infile;

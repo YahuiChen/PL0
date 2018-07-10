@@ -1,7 +1,7 @@
 const m=7, n=85;
 var x,y,z,q,r;
-procedure multiply; /*kjslfjls */
-    var a,b;
+procedure multiply;
+    var a,b;	//multiply
     begin
         a:=x; b:=y; z:=0;
         while b>0 do
@@ -12,7 +12,7 @@ procedure multiply; /*kjslfjls */
     end;
 
 procedure divide;
-    var w;
+    var w;	/*divide*/
     begin
         r:=x; q:=0; w:=y;
 	while w<=r do w:=2*w;
