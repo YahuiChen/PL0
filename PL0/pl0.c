@@ -145,7 +145,8 @@ void getsym()
             getsym();
         }
         else {
-            error(0);
+            // error(0);
+           // sym = ssym['/'];
         }
     }
 
@@ -212,7 +213,7 @@ void enterArray(int start, int end, char* id) {
     dx += (end - start + 1);//连续内存地址分配给该数组
 }
 
-long position(char* id) {	// find identifier id in table
+long position(char* id, int tx) {	// find identifier id in table
     long i;
 
     strcpy(table[0].name, id);
@@ -248,13 +249,124 @@ void constdeclaration() {
     }
 }
 
-void vardeclaration() {
-    if (sym == ident) {
-        enter(variable);
+//void vardeclaration() {
+//    if (sym == ident) {
+//        enter(variable);
+//        getsym();
+//    }
+//    else {
+//        error(4);
+//    }
+//}
+
+void vardeclaration()
+{
+    if (sym == ident)
+    {
+        int n1 = 0, n2 = 0;
+        bool e = false;
         getsym();
+        if (sym == lparen)
+        {
+            char mid[11];//存储变量名字，用于填写名字表
+            memcpy(mid, id, 11);
+            //printf("find (");
+            getsym();
+            if (sym == number || sym == ident)
+            {
+
+                if (sym == number)
+                {
+                    n1 = num;
+                }
+                else
+                {
+                    n1 = isV(position(id, tx));
+                    if (n1 == -1)
+                    {
+                        e = true;
+                        error(31);//不能是变量
+                    }
+                }
+                if (!e)
+                {
+                    getsym();
+                    if (sym == colon)
+                    {
+                        getsym();
+                        if (sym == number || sym == ident)
+                        {
+                            if (sym == number)
+                            {
+                                n2 = num;
+                            }
+                            else
+                            {
+                                n2 = isV(position(id, tx));
+                                if (n2 == -1)
+                                {
+                                    e = true;
+                                    error(31);//不能是变量
+                                }
+                            }
+                            if (!e)
+                            {
+                                if (n1 <= n2)
+                                {
+                                    getsym();
+                                    if (sym == rparen)
+                                    {
+                                        enterArray(n1, n2, mid);
+                                    }
+                                    else
+                                    {
+                                        error(31);//缺少右括号
+                                    }
+                                }
+                                else
+                                {
+                                    error(31);//下界大于上界
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        error(31);//缺少冒号
+                    }
+                }
+            }
+            else
+            {
+                error(31);//只能是数字或者标识符
+            }
+            getsym();
+        }
+        else
+        {
+            //int型
+            enter(variable);
+            // 填写名字表
+        }
+
     }
-    else {
-        error(4);
+    else
+    {
+        error(4);   /* var后应是标识 */
+    }
+    return 0;
+}
+
+int isV(int index)
+{
+    if (index == 0 || table[index].kind != constant)
+    {
+        error(31);//常量未找到
+        return -1;
+    }
+    else
+    {
+        return table[index].val;
     }
 }
 
@@ -267,71 +379,96 @@ void listcode(long cx0) {	// list code generated for this block
 
 }
 
-void expression(unsigned long);
-void factor(unsigned long fsys) {
+void expression(unsigned long, bool nowArray, int index);
+void factor(unsigned long fsys)
+{
     long i;
 
     test(facbegsys, fsys, 24);
 
-    while (sym & facbegsys) {
-        if (sym == ident) 
+    if (sym & facbegsys)
+    {
+        if (sym == ident)
         {
-            i = position(id);
-            if (i == 0) {
+            bool ar = false;
+            i = position(id, tx);
+            if (i == 0)
+            {
                 error(11);
             }
-            else {
-                switch (table[i].kind) {
+            else
+            {
+                switch (table[i].kind)
+                {
                 case constant:
+                    ar = false;
                     gen(lit, 0, table[i].val);
                     break;
                 case variable:
+                    ar = false;
                     gen(lod, lev - table[i].level, table[i].addr);
                     break;
                 case proc:
                     error(21);
                     break;
-                //case array:
-                //    //ar = true;
-                //    getsym();
-                //    getsym();
-                //    expression(fsys, true, i);//下标的值在栈顶
-                //    getsym();
-                //    gen(lit, 0, table[i].addr);
-                //    gen(opr, 0, 2);//当前栈顶是真实地址
-                //    gen(lod2, lev - table[i].level, 0);
-                //    break;
+                case array:
+                    ar = true;
+                    getsym();
+                    getsym();
+                    expression(fsys, true, i);//下标的值在栈顶
+                    getsym();
+                    gen(lit, 0, table[i].addr);
+                    gen(opr, 0, 2);//当前栈顶是真实地址
+                    gen(lod2, lev - table[i].level, 0);
+                    break;
                 }
             }
-            getsym();
-        }
-        else if (sym == number) {
-            if (num > amax) {
-                error(31); num = 0;
-            }
-            gen(lit, 0, num);
-            getsym();
-        }
-        else if (sym == lparen) {
-            getsym();
-            expression(rparen | fsys);
-            if (sym == rparen) {
+            if (!ar)
+            {
                 getsym();
             }
-            else {
-                error(22);
+        }
+        else
+        {
+            if (sym == number)
+            {
+                if (num > amax)
+                {
+                    error(31); num = 0;
+                }
+                gen(lit, 0, num);
+                getsym();
+            }
+            else
+            {
+                if (sym == lparen)
+                {
+                    getsym();
+                    expression(rparen | fsys, false, 0);
+                    if (sym == rparen)
+                    {
+                        getsym();
+                    }
+                    else
+                    {
+                        error(22);
+                    }
+                }
+                test(fsys, lparen, 23);
             }
         }
-        test(fsys, lparen, 23);
     }
 }
+
+
 
 void term(unsigned long fsys) {
     unsigned long mulop;
 
     factor(fsys | times | slash);
     while (sym == times || sym == slash) {
-        mulop = sym; getsym();
+        mulop = sym;
+        getsym();
         factor(fsys | times | slash);
         if (mulop == times) {
             gen(opr, 0, 4);
@@ -376,7 +513,8 @@ void condition(unsigned long fsys) {
     unsigned long relop;
 
     if (sym == oddsym) {
-        getsym(); expression(fsys, false, 0);
+        getsym();
+        expression(fsys, false, 0);
         gen(opr, 0, 6);
     }
     else {
@@ -415,120 +553,292 @@ void condition(unsigned long fsys) {
 /*
 * 语句处理
 */
-void statement(unsigned long fsys) {
+void statement(unsigned long fsys)
+{
     long i, cx1, cx2;
 
     if (sym == ident)
     {
-        i = position(id);
+        i = position(id, tx);
         if (i == 0) {
             error(11);
         }
         else
+        {
             if (table[i].kind != variable && table[i].kind != array)
             {	// assignment to non-variable
                 error(12); i = 0;
             }
-     /*    else
-         {
-             if (table[i].kind == variable)
-             {
-                 getsym();
-                 if (sym == becomes)
-                 {
-                     getsym();
-                 }
-                 else
-                 {
-                     error(13);
-                 }
-                 expression(fsys)
-             }
+            else
+            {
+                if (table[i].kind == variable)
+                {
+                    getsym();
+                    if (sym == becomes)
+                    {
+                        getsym();
+                    }
+                    else
+                    {
+                        error(13);
+                    }
+                    expression(fsys, false, i);
+                    if (i != 0)
+                    {
+                        /* expression将执行一系列指令，但最终结果将会保存在栈顶，执行sto命令完成赋值 */
+                        gen(sto, lev - table[i].level, table[i].addr);
+                    }
+                }
+                else
+                {
+                    getsym();
 
+                    expression(fsys, true, i);//下标的表达式，将偏移量（已经减掉下界值）放到栈顶
 
-             getsym();
-             if (sym == becomes) {
-                 getsym();
-             }
-             else {
-                 error(13);
-             }
-             expression(fsys);
-             if (i != 0) {
-                 gen(sto, lev - table[i].level, table[i].addr);
-             }
-
-         }*/
+                                                            //gendo(lit, 0, table[i].low);
+                                                            //gendo(opr, 0, 3);
+                    gen(lit, 0, table[i].addr);//将基地址放到栈顶
+                    gen(opr, 0, 2);//当前栈顶是真实地址
+                    if (sym == becomes) {
+                        getsym();
+                    }
+                    else {
+                        error(13);
+                    }
+                    //memcpy(nxtlev, fsys, sizeof(bool)*symnum);
+                    expression(fsys, false, i); /* 处理赋值符号右侧表达式 */
+                    if (i != 0)
+                    {
+                        /* expression将执行一系列指令，但最终结果将会保存在栈顶，执行sto命令完成赋值 */
+                        gen(sto2, lev - table[i].level, 0);
+                    }
+                }
+            }
+        }
     }
 
 
-    else if (sym == callsym) {
+    /*getsym();
+    if (sym == becomes) {
         getsym();
-        if (sym != ident) {
-            error(14);
-        }
-        else {
-            i = position(id);
-            if (i == 0) {
-                error(11);
-            }
-            else if (table[i].kind == proc) {
-                gen(cal, lev - table[i].level, table[i].addr);
-            }
-            else {
-                error(15);
-            }
-            getsym();
-        }
     }
-
-    else if (sym == ifsym) {
-        getsym();
-        condition(fsys | thensym | dosym);
-        if (sym == thensym) {
-            getsym();
-        }
-        else {
-            error(16);
-        }
-        cx1 = cx;	gen(jpc, 0, 0);
-        statement(fsys);
-        code[cx1].a = cx;
+    else {
+        error(13);
     }
+    expression(fsys);
+    if (i != 0) {
+        gen(sto, lev - table[i].level, table[i].addr);
+    }*/
 
-    else if (sym == beginsym) {
-        getsym(); statement(fsys | semicolon | endsym);
-        while (sym == semicolon || (sym&statbegsys)) {
-            if (sym == semicolon) {
+    else
+    {
+        if (sym == readsym) /* 准备按照read语句处理 */
+        {
+            getsym();
+            if (sym != lparen)
+            {
+                error(34);  /* 格式错误，应是左括号 */
+            }
+            else
+            {
+
+                do {
+                    getsym();
+                    if (sym == ident)
+                    {
+                        i = position(id, tx); /* 查找要读的变量 */
+                    }
+                    else
+                    {
+                        i = 0;
+                    }
+
+                    if (i == 0)
+                    {
+                        error(35);  /* read()中应是声明过的变量名 */
+                    }
+                    else if (table[i].kind != variable && table[i].kind != array)
+                    {
+                        error(32);	/* read()参数表的标识符不是变量, thanks to amd */
+                    }
+                    else
+                    {
+
+                        if (table[i].kind == variable) {//read(a);
+                            gen(opr, 0, 16);  /* 生成输入指令，读取值到栈顶 */
+                            gen(sto, lev - table[i].level, table[i].addr);   /* 储存到变量 */
+                            getsym();
+                        }
+                        else
+                        {
+
+                            getsym();
+
+                            expression(fsys, true, i);//括号内的表达式，将偏移量放到栈顶
+                                                                    //gendo(lit, 0, table[i].low);
+                                                                    //gendo(opr, 0, 3);
+                            gen(lit, 0, table[i].addr);//基地址
+                            gen(opr, 0, 2);//当前栈顶是真实地址
+                            gen(opr, 0, 16);  /* 生成输入指令，读取值到栈顶 */
+                            gen(sto2, lev - table[i].level, 0);
+                            //gendo(sto, lev - table[i].level, table[i].adr);
+                            //int ad = *(int*)(table[i].adr);
+                            //gendo(sto, lev - table[i].level, table[i].adr);
+
+
+                        }
+
+                    }
+
+                } while (sym == comma); /* 一条read语句可读多个变量 */
+            }
+            if (sym != rparen)
+            {
+                error(33);  /* 格式错误，应是右括号 */
+                while (!(sym & fsys))   /* 出错补救，直到收到上层函数的后跟符号 */
+                {
+                    getsym();
+                }
+            }
+            else
+            {
                 getsym();
             }
-            else {
-                error(10);
+        }
+
+        else {
+            if (sym == writesym)    /* 准备按照write语句处理，与read类似 */
+            {
+                getsym();
+                if (sym == lparen)
+                {
+                    do {
+                        getsym();
+                        // memcpy(nxtlev, fsys, sizeof(bool)*symnum);
+        /*                  nxtlev[rparen] = true;
+                          nxtlev[comma] = true;       */    /* write的后跟符号为) or , */
+                        expression(fsys, false, 0); /* 调用表达式处理，此处与read不同，read为给变量赋值 */
+                        gen(opr, 0, 14);  /* 生成输出指令，输出栈顶的值 */
+                    } while (sym == comma);
+                    if (sym != rparen)
+                    {
+                        error(33);  /* write()中应为完整表达式 */
+                    }
+                    else
+                    {
+                        getsym();
+                    }
+                }
+                gen(opr, 0, 15);  /* 输出换行 */
             }
-            statement(fsys | semicolon | endsym);
-        }
-        if (sym == endsym) {
-            getsym();
-        }
-        else {
-            error(17);
+            else {
+                if (sym == callsym)
+                {
+                    getsym();
+                    if (sym != ident)
+                    {
+                        error(14);
+                    }
+                    else
+                    {
+                        i = position(id, tx);
+                        if (i == 0) {
+                            error(11);
+                        }
+                        else if (table[i].kind == proc)
+                        {
+                            gen(cal, lev - table[i].level, table[i].addr);
+                        }
+                        else
+                        {
+                            error(15);
+                        }
+                        getsym();
+                    }
+                }
+
+                else {
+                    if (sym == ifsym)
+                    {
+                        getsym();
+                        condition(fsys | thensym | dosym);
+                        if (sym == thensym)
+                        {
+                            getsym();
+                        }
+                        else {
+                            error(16);
+                        }
+                        cx1 = cx;
+                        gen(jpc, 0, 0);
+                        statement(fsys);
+                        code[cx1].a = cx;
+                    }
+
+
+                    else
+                    {
+                        if (sym == beginsym)
+                        {
+                            getsym();
+                            statement(fsys | semicolon | endsym);
+
+                            while (sym == semicolon || (sym&statbegsys))
+                            {
+                                if (sym == semicolon)
+                                {
+                                    getsym();
+                                }
+                                else
+                                {
+                                    error(10);
+                                }
+                                statement(fsys | semicolon | endsym);
+                            }
+                            //     sym = endsym;
+                            if (sym == endsym)
+                            {
+                                getsym();
+                            }
+                            else
+                            {
+                                error(17);
+                            }
+                        }
+
+
+                        else {
+                            if (sym == whilesym)
+                            {
+                                cx1 = cx; getsym();
+                                condition(fsys | dosym);
+                                cx2 = cx;
+                                gen(jpc, 0, 0);
+                                if (sym == dosym)
+                                {
+                                    getsym();
+                                }
+                                else
+                                {
+                                    error(18);
+                                }
+                                statement(fsys);
+                                gen(jmp, 0, cx1);
+                                code[cx2].a = cx;
+                            }
+
+                            test(fsys, 0, 19);
+
+                        }
+                    }
+                }
+            }
         }
     }
-    else if (sym == whilesym) {
-        cx1 = cx; getsym();
-        condition(fsys | dosym);
-        cx2 = cx;	gen(jpc, 0, 0);
-        if (sym == dosym) {
-            getsym();
-        }
-        else {
-            error(18);
-        }
-        statement(fsys); gen(jmp, 0, cx1);
-        code[cx2].a = cx;
-    }
-    test(fsys, 0, 19);
+    //test(fsys, 0, 19);
 }
+
+
 
 void block(unsigned long fsys) {
     long tx0;		// initial table index
@@ -688,20 +998,20 @@ void interpret() {
         case lod:
             t = t + 1; s[t] = s[base(b, i.l) + i.a];
             break;
-        //case lod2:
-        //   // s[t - 1] = s[base(i.l, s, b) + s[t - 1]];//应当覆盖基址和偏移量所在位置，以保证可以进行条件判断
-        //    s[t - 1] = s[base(b, i.l) + s[t - 1]];
-        //    break;
+        case lod2:
+            // s[t - 1] = s[base(i.l, s, b) + s[t - 1]];//应当覆盖基址和偏移量所在位置，以保证可以进行条件判断
+            s[t] = s[base(b, i.l) + s[t]];
+            break;
         case sto:
             s[base(b, i.l) + i.a] = s[t]; printf("%10d\n", s[t]); t = t - 1;
             break;
-        /*case sto2:
-            s[base(b,i.l) + s[t - 1]] = s[t];
+        case sto2:
+            s[base(b, i.l) + s[t - 1]] = s[t];
             t--;
-            break;*/
+            break;
         case cal:		// generate new block mark
-            s[t + 1] = base(b, i.l); 
-            s[t + 2] = b; 
+            s[t + 1] = base(b, i.l);
+            s[t + 2] = b;
             s[t + 3] = p;
             b = t + 1; p = i.a;
             break;
@@ -737,6 +1047,10 @@ main() {
     strcpy(word[8], "then      ");
     strcpy(word[9], "var       ");
     strcpy(word[10], "while     ");
+    strcpy(word[11], "read");
+    strcpy(word[12], "write");
+    //strcpy(word[13], "");
+
     wsym[0] = beginsym;
     wsym[1] = callsym;
     wsym[2] = constsym;
@@ -748,6 +1062,8 @@ main() {
     wsym[8] = thensym;
     wsym[9] = varsym;
     wsym[10] = whilesym;
+    wsym[11] = readsym;
+    wsym[12] = writesym;
     ssym['+'] = plus;
     ssym['-'] = minus;
     ssym['*'] = times;
@@ -758,6 +1074,8 @@ main() {
     ssym[','] = comma;
     ssym['.'] = period;
     ssym[';'] = semicolon;
+    ssym[':'] = colon;
+
     strcpy(mnemonic[lit], "lit");
     strcpy(mnemonic[opr], "opr");
     strcpy(mnemonic[lod], "lod");
@@ -766,6 +1084,8 @@ main() {
     strcpy(mnemonic[Int], "int");
     strcpy(mnemonic[jmp], "jmp");
     strcpy(mnemonic[jpc], "jpc");
+    strcpy(mnemonic[sto2], "sto2");
+    strcpy(mnemonic[lod2], "lod2");
     declbegsys = constsym | varsym | procsym;
     statbegsys = beginsym | callsym | ifsym | whilesym;
     facbegsys = ident | number | lparen;
@@ -785,11 +1105,13 @@ main() {
     if (sym != period) {
         error(9);
     }
+    // err = 0;
     if (err == 0) {
         interpret();
     }
     else {
         printf("errors in PL/0 program\n");
+        // printf("%d", err);
     }
     fclose(infile);
 }

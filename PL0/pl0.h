@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define norw       11             // no. of reserved words
+#define norw       13             // no. of reserved words
 #define txmax      100            // length of identifier table
 #define nmax       14             // max. no. of digits in numbers
 #define al         10             // length of identifiers
@@ -38,6 +38,11 @@
 #define constsym   0x8000000
 #define varsym     0x10000000
 #define procsym    0x20000000
+#define readsym    0x40000000
+#define writesym   0x80000000
+#define colon      0x100000000
+
+//#define writesym   0x2000000
 
 enum object {
     constant, variable, proc, array
@@ -50,7 +55,7 @@ typedef enum {
 
 
 enum fct {
-    lit, opr, lod, sto, cal, Int, jmp, jpc         // functions
+    lit, opr, lod, sto, cal, Int, jmp, jpc, sto2, lod2         // functions
 };
 
 typedef struct {
@@ -83,7 +88,7 @@ char word[norw][al + 1];
 unsigned long wsym[norw];
 unsigned long ssym[256];
 
-char mnemonic[8][3 + 1];
+char mnemonic[10][3 + 2];
 unsigned long declbegsys, statbegsys, facbegsys;
 
 struct {
