@@ -33,13 +33,13 @@
 #define ifsym      0x400000
 #define thensym    0x800000
 #define whilesym   0x1000000
-#define dosym      0x2000000
-#define callsym    0x4000000
-#define constsym   0x8000000
-#define varsym     0x10000000
-#define procsym    0x20000000
-#define readsym    0x40000000
-#define writesym   0x80000000
+#define writesym   0x2000000
+#define readsym    0x4000000
+#define dosym      0x8000000
+#define callsym    0x10000000
+#define constsym   0x20000000
+#define varsym     0x40000000
+#define procsym    0x80000000
 #define colon      0x100000000
 
 //#define writesym   0x2000000
@@ -88,7 +88,7 @@ char word[norw][al + 1];
 unsigned long wsym[norw];
 unsigned long ssym[256];
 
-char mnemonic[10][3 + 2];
+char mnemonic[10][5];
 unsigned long declbegsys, statbegsys, facbegsys;
 
 struct {

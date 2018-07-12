@@ -4,14 +4,19 @@
 #include "pl0.h"
 
 void error(long n) {
-    long i;
+    /*long i;
 
     printf(" ****");
     for (i = 1; i <= cc - 1; i++) {
         printf(" ");
     }
-    printf("^%2d\n", n);
-    //printf("|%s(%d)\n", err_msg[n], n);
+    printf("^%2d\n", n);*/
+    char space[81];
+    memset(space, 32, 81);
+
+    space[cc - 1] = 0; //出错时当前符号已经读完，所以cc-1
+
+    printf("****%s!%d\n", space, n);
     err++;
 }
 
@@ -51,15 +56,23 @@ void getsym()
             }
             getch();
         } while (isalpha(ch) || isdigit(ch));
-        if (k >= kk) {
+
+        if (k >= kk)
+        {
             kk = k;
         }
-        else {
-            do {
+        else
+        {
+            do
+            {
                 kk = kk - 1; a[kk] = ' ';
             } while (k < kk);
         }
-        strcpy(id, a); i = 0; j = norw - 1;
+
+        strcpy(id, a);
+        i = 0;
+        j = norw - 1;
+
         do {								//折半查找
             k = (i + j) / 2;
             if (strcmp(id, word[k]) <= 0) {
@@ -69,6 +82,7 @@ void getsym()
                 i = k + 1;
             }
         } while (i <= j);
+
         if (i - 1 > j) {
             sym = wsym[k];
         }
@@ -87,14 +101,16 @@ void getsym()
             error(31);
         }
     }
-    else if (ch == ':') {
+    else if (ch == ':')
+    {
         getch();
         if (ch == '=') {
             sym = becomes;
             getch();
         }
-        else {
-            sym = nul;
+        else
+        {
+            sym = colon;
         }
     }
     else if (ch == '<') {
@@ -145,8 +161,8 @@ void getsym()
             getsym();
         }
         else {
-            // error(0);
-           // sym = ssym['/'];
+            //error(0);
+            sym = ssym['/'];
         }
     }
 
@@ -357,7 +373,7 @@ void vardeclaration()
     return 0;
 }
 
-int isV(int index)
+int isV(long index)
 {
     if (index == 0 || table[index].kind != constant)
     {
@@ -394,7 +410,7 @@ void factor(unsigned long fsys)
             i = position(id, tx);
             if (i == 0)
             {
-                error(11);
+                error(11);  /* 标识符未声明 */
             }
             else
             {
@@ -522,11 +538,13 @@ void condition(unsigned long fsys) {
         if (!(sym&(eql | neq | lss | gtr | leq | geq))) {
             error(20);
         }
-        else {
+        else
+        {
             relop = sym;
             getsym();
             expression(fsys, false, 0);
-            switch (relop) {
+            switch (relop)
+            {
             case eql:
                 gen(opr, 0, 8);
                 break;
@@ -560,14 +578,16 @@ void statement(unsigned long fsys)
     if (sym == ident)
     {
         i = position(id, tx);
-        if (i == 0) {
-            error(11);
+        if (i == 0)
+        {
+            error(11);   /* 变量未找到 */
         }
         else
         {
             if (table[i].kind != variable && table[i].kind != array)
             {	// assignment to non-variable
-                error(12); i = 0;
+                error(12);
+                i = 0;
             }
             else
             {
@@ -706,7 +726,8 @@ void statement(unsigned long fsys)
             }
         }
 
-        else {
+        else
+        {
             if (sym == writesym)    /* 准备按照write语句处理，与read类似 */
             {
                 getsym();
@@ -717,9 +738,10 @@ void statement(unsigned long fsys)
                         // memcpy(nxtlev, fsys, sizeof(bool)*symnum);
         /*                  nxtlev[rparen] = true;
                           nxtlev[comma] = true;       */    /* write的后跟符号为) or , */
-                        expression(fsys, false, 0); /* 调用表达式处理，此处与read不同，read为给变量赋值 */
+                        expression(fsys | rparen | comma, false, 0); /* 调用表达式处理，此处与read不同，read为给变量赋值 */
                         gen(opr, 0, 14);  /* 生成输出指令，输出栈顶的值 */
                     } while (sym == comma);
+
                     if (sym != rparen)
                     {
                         error(33);  /* write()中应为完整表达式 */
@@ -731,7 +753,8 @@ void statement(unsigned long fsys)
                 }
                 gen(opr, 0, 15);  /* 输出换行 */
             }
-            else {
+            else
+            {
                 if (sym == callsym)
                 {
                     getsym();
@@ -757,7 +780,8 @@ void statement(unsigned long fsys)
                     }
                 }
 
-                else {
+                else
+                {
                     if (sym == ifsym)
                     {
                         getsym();
@@ -774,8 +798,6 @@ void statement(unsigned long fsys)
                         statement(fsys);
                         code[cx1].a = cx;
                     }
-
-
                     else
                     {
                         if (sym == beginsym)
@@ -783,7 +805,7 @@ void statement(unsigned long fsys)
                             getsym();
                             statement(fsys | semicolon | endsym);
 
-                            while (sym == semicolon || (sym&statbegsys))
+                            while ((sym&statbegsys) || sym == semicolon)
                             {
                                 if (sym == semicolon)
                                 {
@@ -807,7 +829,8 @@ void statement(unsigned long fsys)
                         }
 
 
-                        else {
+                        else
+                        {
                             if (sym == whilesym)
                             {
                                 cx1 = cx; getsym();
@@ -840,14 +863,22 @@ void statement(unsigned long fsys)
 
 
 
-void block(unsigned long fsys) {
+//int block(int lev, int  tx, unsigned long fsys)
+void block(unsigned long fsys)
+{
+    long i;
+
     long tx0;		// initial table index
     long cx0; 		// initial code index
     long tx1;		// save current table index before processing nested procedures
     long dx1;		// save data allocation index
+   /*bool nxtlev[33]; *//* 在下级函数的参数中，符号集合均为值参，但由于使用数组实现，
+                            传递进来的是指针，为防止下级函数改变上级函数的集合，开辟新的空?
+                            传递给下级函数*/
 
     dx = 3; tx0 = tx; table[tx].addr = cx; gen(jmp, 0, 0);
-    if (lev > levmax) {
+    if (lev > levmax)
+    {
         error(32);
     }
     do
@@ -907,6 +938,12 @@ void block(unsigned long fsys) {
             lev = lev + 1; tx1 = tx; dx1 = dx;
             block(fsys | semicolon);
             lev = lev - 1; tx = tx1; dx = dx1;
+            //memcpy(nxtlev, fsys, sizeof(bool) * 33);
+            //nxtlev[semicolon] = true;
+            //if (-1 == block(lev + 1, tx, nxtlev))
+            //{
+            //    return -1;  /* 递归调用 */
+            //}
 
             if (sym == semicolon) {
                 getsym();
@@ -1003,7 +1040,8 @@ void interpret() {
             s[t] = s[base(b, i.l) + s[t]];
             break;
         case sto:
-            s[base(b, i.l) + i.a] = s[t]; printf("%10d\n", s[t]); t = t - 1;
+            s[base(b, i.l) + i.a] = s[t]; //printf("%10d\n", s[t]); 
+            t = t - 1;
             break;
         case sto2:
             s[base(b, i.l) + s[t - 1]] = s[t];
@@ -1044,10 +1082,11 @@ main() {
     strcpy(word[5], "if        ");
     strcpy(word[6], "odd       ");
     strcpy(word[7], "procedure ");
-    strcpy(word[8], "then      ");
-    strcpy(word[9], "var       ");
-    strcpy(word[10], "while     ");
-    strcpy(word[11], "read");
+    strcpy(word[8], "read");
+    strcpy(word[9], "then      ");
+    strcpy(word[10], "var       ");
+    strcpy(word[11], "while     ");
+    // strcpy(word[11], "read");
     strcpy(word[12], "write");
     //strcpy(word[13], "");
 
@@ -1059,11 +1098,13 @@ main() {
     wsym[5] = ifsym;
     wsym[6] = oddsym;
     wsym[7] = procsym;
-    wsym[8] = thensym;
-    wsym[9] = varsym;
-    wsym[10] = whilesym;
-    wsym[11] = readsym;
+    wsym[8] = readsym;
+    wsym[9] = thensym;
+    wsym[10] = varsym;
+    wsym[11] = whilesym;
+    //wsym[11] = readsym;
     wsym[12] = writesym;
+
     ssym['+'] = plus;
     ssym['-'] = minus;
     ssym['*'] = times;
@@ -1087,7 +1128,7 @@ main() {
     strcpy(mnemonic[sto2], "sto2");
     strcpy(mnemonic[lod2], "lod2");
     declbegsys = constsym | varsym | procsym;
-    statbegsys = beginsym | callsym | ifsym | whilesym;
+    statbegsys = beginsym | callsym | ifsym | whilesym | readsym | writesym;
     facbegsys = ident | number | lparen;
 
     printf("please input source program file name: ");

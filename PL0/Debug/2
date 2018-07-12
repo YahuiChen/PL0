@@ -1,8 +1,10 @@
 const m=7, n=85;
 var x,y,z,q,r;
-procedure multiply;
-    var a,b;	//multiply
+procedure multiply;  //multi
+    var a,b;	
     begin
+		read(a);
+		//write(1);
         a:=x; b:=y; z:=0;
         while b>0 do
             begin
@@ -25,6 +27,7 @@ procedure divide;
 			q:=q+1;
 		    end
            end
+
 end;
 
 procedure gcd;
