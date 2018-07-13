@@ -1,4 +1,4 @@
-#include <stdio.h>
+ï»¿#include <stdio.h>
 
 #define norw       13             // no. of reserved words
 #define txmax      100            // length of identifier table
@@ -53,7 +53,6 @@ typedef enum {
     true
 } bool;
 
-
 enum fct {
     lit, opr, lod, sto, cal, Int, jmp, jpc, sto2, lod2         // functions
 };
@@ -97,10 +96,8 @@ struct {
     long val;
     long level;
     long addr;
-    int low;      /* ÏÂ½ç£º½öÊı×éĞèÒªÊ¹ÓÃ*/
+    int low;      /* ä¸‹ç•Œï¼šä»…æ•°ç»„éœ€è¦ä½¿ç”¨*/
 }table[txmax + 1];
-
-
 
 char infilename[80];
 FILE* infile;
