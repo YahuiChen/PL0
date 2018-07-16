@@ -1,12 +1,14 @@
 ﻿#include <stdio.h>
 
-#define norw       13             // no. of reserved words
+#define norw       15             // no. of reserved words
 #define txmax      100            // length of identifier table
 #define nmax       14             // max. no. of digits in numbers
 #define al         10             // length of identifiers
 #define amax       2047           // maximum address
 #define levmax     3              // maximum depth of block nesting
 #define cxmax      2000           // size of code array
+#define elsize      2000           // while中的exit表的长度
+//#define etlsize     2000           // 变量声明中的enterlist表的长度
 
 #define nul	   0x1
 #define ident      0x2
@@ -40,7 +42,9 @@
 #define constsym   0x20000000
 #define varsym     0x40000000
 #define procsym    0x80000000
-#define colon      0x100000000
+#define elsesym    0x91000000
+#define colon      0x90000000
+#define exitsym    0x92000000
 
 //#define writesym   0x2000000
 
@@ -79,6 +83,7 @@ long cc;               // character count
 long ll;               // line length
 long kk, err;
 long cx;               // code allocation index
+long cx3;
 
 char line[81];
 char a[al + 1];
@@ -89,6 +94,8 @@ unsigned long ssym[256];
 
 char mnemonic[10][5];
 unsigned long declbegsys, statbegsys, facbegsys;
+long exitlist[elsize];    // while中的exit地址表
+long elx;                 // exitlist指针
 
 struct {
     char name[al + 1];
@@ -106,6 +113,8 @@ FILE* infile;
 long dx;		// data allocation index
 long lev;		// current depth of block nesting
 long tx;		// current table index
+//long enterlist[etlsize];  // 变量声明中的enterlist表
+//long etlx;                // enterlist指针
 
 // the following array space for interpreter
 #define stacksize 50000

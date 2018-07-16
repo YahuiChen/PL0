@@ -1,16 +1,17 @@
 const	a=10;
-var   c;
-b(0:2);
-procedure	p; //jdlajl
+var   c,b(0:2);
+procedure	p; 
 	begin
-		c:=b+a;
+		c:=b(0)+a;
 	end;
 begin
     read(b(0));
+	/*if b(0)>=0 then write(b(0))
+	else write(a);*/
+		
 	while b(0)<>0 do
 	begin
-		call p;write(2*c);read(b(0));
+		call p;write(2*c);
+		exit;
 	end
-
-
 end.

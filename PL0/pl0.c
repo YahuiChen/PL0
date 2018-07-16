@@ -136,43 +136,49 @@ void getsym()
             sym = gtr;
         }
     }
-    else if (ch == '/')		// to handle the notes beginning with "/*"
+    else
     {
-        getch();
-        if (ch == '*') {
-            do {
-                getch();
-            } while (ch != '*');
-            while (1) {
-                getch();
-                if (ch == '/') {
+        if (ch == '/')		// to handle the notes beginning with "/*"
+        {
+            getch();
+            if (ch == '*') {
+                do {
                     getch();
-                    getsym();
-                    break;
-                }
-                else {
-                    do {
+                } while (ch != '*');
+                while (1) {
+                    getch();
+                    if (ch == '/') {
                         getch();
-                    } while (ch != '*');
+                        getsym();
+                        break;
+                    }
+                    else {
+                        do {
+                            getch();
+                        } while (ch != '*');
+                    }
                 }
             }
+            else if (ch == '/') {
+                cc = ll;
+                getch();
+                getsym();
+            }
+            else {
+                //error(0);
+                sym = ssym['/'];
+            }
         }
-        else if (ch == '/') {
-            cc = ll;
-            getch();
-            getsym();
-        }
-        else {
-            error(0);
-            //sym = ssym['/'];
-        }
-    }
 
-    else {
-        sym = ssym[(unsigned char)ch]; getch();
+        else {
+            sym = ssym[(unsigned char)ch];
+            if (sym != period)
+            {
+                getch();
+            }
+        }
     }
 }
-
 void gen(enum fct x, long y, long z) {
     if (cx > cxmax) {
         printf("program too long\n");
@@ -414,6 +420,16 @@ void factor(unsigned long fsys)
             {
                 switch (table[i].kind)
                 {
+                case array:
+                    ar = true;
+                    getsym();
+                    getsym();
+                    expression(fsys, true, i);//下标的值在栈顶
+                    getsym();
+                    gen(lit, 0, table[i].addr);
+                    gen(opr, 0, 2);//当前栈顶是真实地址
+                    gen(lod2, lev - table[i].level, 0);
+                    break;
                 case constant:
                     ar = false;
                     gen(lit, 0, table[i].val);
@@ -424,16 +440,6 @@ void factor(unsigned long fsys)
                     break;
                 case proc:
                     error(21);
-                    break;
-                case array:
-                    ar = true;
-                    getsym();
-                    getsym();
-                    expression(fsys, true, i);//下标的值在栈顶
-                    getsym();
-                    gen(lit, 0, table[i].addr);
-                    gen(opr, 0, 2);//当前栈顶是真实地址
-                    gen(lod2, lev - table[i].level, 0);
                     break;
                 }
             }
@@ -468,13 +474,15 @@ void factor(unsigned long fsys)
                         error(22);
                     }
                 }
-                test(fsys, lparen, 23);
+                //test(fsys, lparen, 23);
+                //test(fsys, facbegsys, 23);
             }
         }
     }
 }
 
-void term(unsigned long fsys) {
+void term(unsigned long fsys)
+{
     unsigned long mulop;
 
     factor(fsys | times | slash);
@@ -494,18 +502,23 @@ void term(unsigned long fsys) {
 void expression(unsigned long fsys, bool nowArray, int index) {
     unsigned long addop;
 
-    if (sym == plus || sym == minus) {
-        addop = sym; getsym();
+    if (sym == plus || sym == minus)
+    {
+        addop = sym;
+        getsym();
         term(fsys | plus | minus);
-        if (addop == minus) {
+        if (addop == minus)
+        {
             gen(opr, 0, 1);
         }
     }
     else {
         term(fsys | plus | minus);
     }
-    while (sym == plus || sym == minus) {
-        addop = sym; getsym();
+    while (sym == plus || sym == minus)
+    {
+        addop = sym;
+        getsym();
         term(fsys | plus | minus);
         if (addop == plus) {
             gen(opr, 0, 2);
@@ -686,7 +699,6 @@ void statement(unsigned long fsys)
                         else
                         {
                             getsym();
-
                             expression(fsys, true, i);//括号内的表达式，将偏移量放到栈顶
                                                                     //gendo(lit, 0, table[i].low);
                                                                     //gendo(opr, 0, 3);
@@ -697,6 +709,7 @@ void statement(unsigned long fsys)
                             //gendo(sto, lev - table[i].level, table[i].adr);
                             //int ad = *(int*)(table[i].adr);
                             //gendo(sto, lev - table[i].level, table[i].adr);
+                            //getsym();
                         }
                     }
                 } while (sym == comma); /* 一条read语句可读多个变量 */
@@ -773,7 +786,7 @@ void statement(unsigned long fsys)
                     if (sym == ifsym)
                     {
                         getsym();
-                        condition(fsys | thensym | dosym);
+                        condition(fsys | thensym | dosym | elsesym);
                         if (sym == thensym)
                         {
                             getsym();
@@ -784,7 +797,16 @@ void statement(unsigned long fsys)
                         cx1 = cx;
                         gen(jpc, 0, 0);
                         statement(fsys);
-                        code[cx1].a = cx;
+                        // code[cx1].a = cx;
+                        cx3 = cx;
+                        gen(jmp, 0, 0);//将来会直接跳转到else语句后面
+                        code[cx1].a = cx;   /* 经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址 */
+                        if (sym == elsesym)
+                        {
+                            getsym();
+                            statement(fsys);
+                            code[cx3].a = cx;//当前是else后面的语句结束位置，if语句执行后应当跳转至此
+                        }
                     }
                     else
                     {
@@ -804,6 +826,7 @@ void statement(unsigned long fsys)
                                     error(10);
                                 }
                                 statement(fsys | semicolon | endsym);
+                                //statement(fsys);
                             }
                             //     sym = endsym;
                             if (sym == endsym)
@@ -820,9 +843,16 @@ void statement(unsigned long fsys)
                         {
                             if (sym == whilesym)
                             {
-                                cx1 = cx; getsym();
-                                condition(fsys | dosym);
-                                cx2 = cx;
+                                cx1 = cx;
+                                getsym();
+                                condition(fsys | dosym | exitsym);
+                                //expression(fsys | dosym, false, 0);
+
+                                // cx2 = cx;
+                                cx2 = elx;                 // 记录下当前层开始的elx
+                                exitlist[elx] = cx;        // 将jpc的位置记录进exitlist
+                                elx++;
+
                                 gen(jpc, 0, 0);
                                 if (sym == dosym)
                                 {
@@ -832,9 +862,17 @@ void statement(unsigned long fsys)
                                 {
                                     error(18);
                                 }
+
                                 statement(fsys);
+                                //statement(fsys | exitsym);
                                 gen(jmp, 0, cx1);
-                                code[cx2].a = cx;
+
+                                //code[cx2].a = cx;
+                                while (elx > cx2)           // 将exitlist中记录下的跳转语句的地址补充完整
+                                {
+                                    elx--;
+                                    code[exitlist[elx]].a = cx;
+                                }
                             }
                             else
                             {
@@ -1080,15 +1118,17 @@ main()
     strcpy(word[1], "call      ");
     strcpy(word[2], "const     ");
     strcpy(word[3], "do        ");
-    strcpy(word[4], "end       ");
-    strcpy(word[5], "if        ");
-    strcpy(word[6], "odd       ");
-    strcpy(word[7], "procedure ");
-    strcpy(word[8], "read      ");
-    strcpy(word[9], "then      ");
-    strcpy(word[10], "var       ");
-    strcpy(word[11], "while     ");
-    strcpy(word[12], "write     ");
+    strcpy(word[4], "else      ");
+    strcpy(word[5], "end       ");
+    strcpy(word[6], "exit      ");
+    strcpy(word[7], "if        ");
+    strcpy(word[8], "odd       ");
+    strcpy(word[9], "procedure ");
+    strcpy(word[10], "read      ");
+    strcpy(word[11], "then      ");
+    strcpy(word[12], "var       ");
+    strcpy(word[13], "while     ");
+    strcpy(word[14], "write     ");
 
     /*strcpy(word[0], "begin     ");
     strcpy(word[1], "call      ");
@@ -1109,16 +1149,18 @@ main()
     wsym[1] = callsym;
     wsym[2] = constsym;
     wsym[3] = dosym;
-    wsym[4] = endsym;
-    wsym[5] = ifsym;
-    wsym[6] = oddsym;
-    wsym[7] = procsym;
-    wsym[8] = readsym;
-    wsym[9] = thensym;
-    wsym[10] = varsym;
-    wsym[11] = whilesym;
+    wsym[4] = elsesym;
+    wsym[5] = endsym;
+    wsym[6] = exitsym;
+    wsym[7] = ifsym;
+    wsym[8] = oddsym;
+    wsym[9] = procsym;
+    wsym[10] = readsym;
+    wsym[11] = thensym;
+    wsym[12] = varsym;
+    wsym[13] = whilesym;
     //wsym[11] = readsym;
-    wsym[12] = writesym;
+    wsym[14] = writesym;
 
     ssym['+'] = plus;
     ssym['-'] = minus;
@@ -1157,6 +1199,9 @@ main()
     err = 0;
     cc = 0; cx = 0; ll = 0; ch = ' '; kk = al; getsym();
     lev = 0; tx = 0;
+    elx = 0;                       // exitlist清零
+    //etlx = 0;                      // enterlist清零
+
     block(declbegsys | statbegsys | period);
     if (sym != period) {
         error(9);
@@ -1170,16 +1215,4 @@ main()
         // printf("%d", err);
     }
     fclose(infile);
-}
-
-getss()
-{
-    {
-        {
-            {
-                {
-                }
-            }
-        }
-    }
 }
