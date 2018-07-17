@@ -484,7 +484,9 @@ void factor(unsigned long fsys)
 void term(unsigned long fsys)
 {
     unsigned long mulop;
-
+    /*long elx1;
+    elx1 = elx;
+*/
     factor(fsys | times | slash);
     while (sym == times || sym == slash) {
         mulop = sym;
@@ -497,6 +499,17 @@ void term(unsigned long fsys)
             gen(opr, 0, 5);
         }
     }
+
+    //if (elx > elx1)                // 语句中存在and短路跳转
+    //{
+    //    gen(jmp, 0, cx + 2);         // 若是正常执行则跳过下一句指令
+    //    while (elx > elx1)          // 补上之前的jpc地址
+    //    {
+    //        elx--;
+    //        code[exitlist[elx]].a = cx;
+    //    }
+    //    gen(lit, 0, 0);            // 短路跳转把结果强制置为0
+    //}
 }
 
 void expression(unsigned long fsys, bool nowArray, int index) {
@@ -800,6 +813,7 @@ void statement(unsigned long fsys)
                         // code[cx1].a = cx;
                         cx3 = cx;
                         gen(jmp, 0, 0);//将来会直接跳转到else语句后面
+
                         code[cx1].a = cx;   /* 经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址 */
                         if (sym == elsesym)
                         {
@@ -876,15 +890,29 @@ void statement(unsigned long fsys)
                             }
                             else
                             {
-                                test(fsys, 0, 19);
+                                if (sym == exitsym)
+                                {
+                                    test(fsys, 0, 34);     // exit语句报错处理
+
+                                    exitlist[elx] = cx;    // 将jpc的位置记录进exitlist
+                                    elx++;
+                                    gen(jmp, 0, 0);
+
+                                    getsym();
+                                }
+
+                                else
+                                {
+                                    test(fsys, 0, 19);
+                                }
                             }
                         }
                     }
                 }
             }
         }
+        //test(fsys, 0, 19);
     }
-    //test(fsys, 0, 19);
 }
 
 //int block(int lev, int  tx, unsigned long fsys)
