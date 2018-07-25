@@ -1,0 +1,18 @@
+const	a=10;
+var   c,b(0:2);
+procedure	p; 
+	begin
+		c:=b(0)+a;
+	end;
+begin
+    read(b(0),b(1),b(2));
+	/*/*if b(0)>=0 then write(b(0))
+	else write(a);*/
+	
+		
+	while b(0)<>0 do
+	begin
+		call p;write(2*c);
+		write(b(1),b(2));exit;
+	end
+end.
